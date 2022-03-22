@@ -45,8 +45,13 @@ app.get("/urls/new", (req, res) => {
   res.render("urls_new");
 });
 app.get("/urls/:shortURL", (req, res) => {
-  const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL] };
-  res.render("urls_show", templateVars);
+  let shortURL = req.params.shortURL
+  const templateVars = { shortURL, longURL: urlDatabase[req.params.shortURL] };
+  if (urlDatabase[shortURL]) {
+    res.render("urls_show", templateVars);
+  } else {
+    res.status(400).send("Caution!!! Please check your URL list for the short URL.")
+  }
 });
 app.get("/u/:shortURL", (req, res) => {
   const longURL = urlDatabase[req.params.shortURL];
