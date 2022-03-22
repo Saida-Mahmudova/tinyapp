@@ -10,7 +10,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 const generateRandomString = function () {
   let string = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
   let result = "";
-  for (let i = 0; i <= 6; i++) {
+  for (let i = 0; i < 6; i++) {
     result += string[Math.floor(Math.random() * 62)];
   }
   return result;
@@ -23,6 +23,7 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
+
 app.get("/", (req, res) => {
   res.send("Hello!");
 });
@@ -31,7 +32,14 @@ app.get("/urls", (req, res) => {
   res.render("urls_index", templateVars);
 });
 app.post("/urls", (req, res) => {
-  res.send("Ok");
+  const shortURL = generateRandomString();
+  let longURL = req.body.longURL;
+  if (!longURL.includes('http')) {
+    longURL = `http://${longURL}`
+  }
+  urlDatabase[shortURL] = longURL;
+  const templateVars = { shortURL, longURL };
+  res.render("urls_show", templateVars);
 });
 app.get("/urls/new", (req, res) => {
   res.render("urls_new");
@@ -39,6 +47,10 @@ app.get("/urls/new", (req, res) => {
 app.get("/urls/:shortURL", (req, res) => {
   const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL] };
   res.render("urls_show", templateVars);
+});
+app.get("/u/:shortURL", (req, res) => {
+  const longURL = urlDatabase[req.params.shortURL];
+  res.redirect(longURL);
 });
 
 app.listen(PORT, () => {
