@@ -24,6 +24,7 @@ const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
   "9sm5xK": "http://www.google.com"
 };
+const users = { 'somebody': "somepassword" };
 
 
 app.get("/urls", (req, res) => {
@@ -101,6 +102,21 @@ app.post('/logout', (req, res) => {
   res.clearCookie("username", user)
   res.redirect('/urls')
 });
+
+app.get('/register', (req, res) => {
+  const user = req.cookies.username;
+  const templateVars = { user }
+  res.render("user_registration", templateVars);
+});
+
+app.post('/register', (req, res) => {
+  console.log("register req.body:", req.body);
+  const newName = req.body.username;
+  const newPassword = req.body.password;
+  users[newName] = newPassword;
+  res.cookie("user", newName);
+  res.redirect('/register')
+})
 
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
