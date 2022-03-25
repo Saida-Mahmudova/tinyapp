@@ -107,7 +107,7 @@ app.get('/login', (req, res) => {
   const user = req.cookies['user_id'];
   const templateVars = { user };
   if (!user) {
-    res.render('urls_login', templateVars);
+    res.render('user_login', templateVars);
   } else {
     res.redirect('/urls');
   }
@@ -116,8 +116,13 @@ app.get('/login', (req, res) => {
 // POST login
 app.post("/login", (req, res) => {
   const email = req.body.email;
-  res.cookie('user_id', email);
-  res.redirect('/urls');
+  const password = req.body.password;
+  if (existingUser(users, email)) {
+    res.cookie('user_id', email);
+    res.redirect('/urls');
+  } else {
+    res.status(403).send(`<html><body><h2>Error:403</h2> <h3><b>User ${email} is not registered. Please check your email or register!</h3><h4><a href="/register">Register</a></h4></b></body></html>`);
+  }
 });
 
 //POST /logout
