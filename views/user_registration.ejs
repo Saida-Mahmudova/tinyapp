@@ -10,25 +10,20 @@
 <%- include('partials/_header') %>
 
   <body>
-    <div class="card text-center">
-      <div class="card-header"></div>
-      <div class="card-body">
-        <h5 class="card-title">Create New Account
-        </h5>
-
-      </div>
-      <div class="card-footer text-muted">
-        <td>
-          <form action="/register" method="POST">
-            <label for="email">Your Email</label>
-            <input id="email" type="email" name="email">
-            <label for="password">Your Password</label>
-            <input id="password" type="password" name="password">
-            <button type="submit" class='btn btn-primary'>Sign Up</button>
-          </form>
-        </td>
-      </div>
-    </div>
+    <main style="margin: 1em;">
+      <h3>Create New Account</h3>
+      <form action="/register" method="POST">
+        <div class="mb-3">
+          <label for="email" class="form-label">Email address</label>
+          <input class="form-control" type="email" name="email" placeholder="Enter Email" style="width: 300px;">
+        </div>
+        <div class="mb-3">
+          <label for="password" class="form-label">Password</label>
+          <input type="password" class="form-control" name="password" placeholder="Password" style="width: 300px;">
+        </div>
+        <button type="submit" class='btn btn-primary'>Register</button>
+      </form>
+    </main>
     <!-- Bootstrap JS -->
     <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
       integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
