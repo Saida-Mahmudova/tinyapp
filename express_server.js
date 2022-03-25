@@ -45,6 +45,29 @@ const existingUser = (users, email) => {
   return false;
 };
 
+const findIdByEmail = (users, email) => {
+  for (let user in users) {
+    if (users[user].email === email) {
+      return user;
+    }
+  }
+  return null;
+};
+
+const checkPassword = (users, email, password) => {
+  const id = findIdByEmail(users, email);
+  for (let user in users) {
+    if (user === id && users[id].password === password) {
+      return true;
+    }
+  }
+  return false;
+};
+
+app.get("/", (req, res) => {
+  res.redirect("/urls");
+});
+
 // GET /urls
 app.get("/urls", (req, res) => {
   const user = req.cookies['user_id'];
@@ -118,8 +141,12 @@ app.post("/login", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
   if (existingUser(users, email)) {
-    res.cookie('user_id', email);
-    res.redirect('/urls');
+    if (checkPassword(users, email, password)) {
+      res.cookie('user_id', email);
+      res.redirect('/urls');
+    } else {
+      res.status(403).send(`<html><body><h2>Error:403</h2> <h3><b>Password is not correct! Please check your password and try again!</h3><h4><a href="/login">Sign In</a></h4></b></body></html>`);
+    }
   } else {
     res.status(403).send(`<html><body><h2>Error:403</h2> <h3><b>User ${email} is not registered. Please check your email or register!</h3><h4><a href="/register">Register</a></h4></b></body></html>`);
   }
@@ -144,17 +171,17 @@ app.get('/register', (req, res) => {
 
 //POST /register
 app.post('/register', (req, res) => {
-  const newEmail = req.body.email;
-  const newPassword = req.body.password;
-  const newId = generateRandomString();
-  const newUser = { newEmail, newPassword, newId };
-  if (newEmail !== "" && newPassword !== "") {
-    if (!existingUser(users, newEmail)) {
-      users[newId] = newUser;
-      res.cookie("user_id", newEmail);
+  const email = req.body.email;
+  const password = req.body.password;
+  const id = generateRandomString();
+  const user = { email, password, id };
+  if (email !== "" && password !== "") {
+    if (!existingUser(users, email)) {
+      users[id] = user;
+      res.cookie("user_id", email);
       res.redirect('/urls');
     } else {
-      res.status(400).send(`<html><body><h1>Error: 400</h1> <h2><b>This email(${newEmail}) has already been registered!</h2><h3><a href="/login">Login</a></h3></b></body></html>`);
+      res.status(400).send(`<html><body><h1>Error: 400</h1> <h2><b>This email(${email}) has already been registered!</h2><h3><a href="/login">Login</a></h3></b></body></html>`);
     }
   } else {
     res.status(400).send(`<html><body><h1>Error:400</h1> <h2><b>Email or Password cannot be left blank!</h2><h3><a href="/register">Register</a></h3></b></body></html>`);
