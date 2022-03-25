@@ -36,6 +36,15 @@ const users = {
   }
 };
 
+const existingUser = (users, email) => {
+  for (let user in users) {
+    if (users[user].email === email) {
+      return true;
+    }
+  }
+  return false;
+};
+
 // GET /urls
 app.get("/urls", (req, res) => {
   const user = req.cookies['user_id'];
@@ -120,7 +129,7 @@ app.post('/logout', (req, res) => {
 //GET /register
 app.get('/register', (req, res) => {
   const user = req.cookies["user_id"];
-  const templateVars = { user }
+  const templateVars = { user };
   if (!user) {
     res.render('user_registration', templateVars);
   } else {
@@ -134,9 +143,17 @@ app.post('/register', (req, res) => {
   const newPassword = req.body.password;
   const newId = generateRandomString();
   const newUser = { newEmail, newPassword, newId };
-  users[newId] = newUser;
-  res.cookie("user_id", newEmail);
-  res.redirect('/urls');
+  if (newEmail !== "" && newPassword !== "") {
+    if (!existingUser(users, newEmail)) {
+      users[newId] = newUser;
+      res.cookie("user_id", newEmail);
+      res.redirect('/urls');
+    } else {
+      res.status(400).send(`<html><body><h1>Error: 400</h1> <h2><b>This email(${newEmail}) has already been registered!</h2><h3><a href="/login">Login</a></h3></b></body></html>`);
+    }
+  } else {
+    res.status(400).send(`<html><body><h1>Error:400</h1> <h2><b>Email or Password cannot be left blank!</h2><h3><a href="/register">Register</a></h3></b></body></html>`);
+  }
 });
 
 app.listen(PORT, () => {
