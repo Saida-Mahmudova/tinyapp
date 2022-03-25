@@ -5,7 +5,7 @@
   <!-- Bootstrap CSS -->
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css"
     integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous">
-  <title>URL - TinyApp Example</title>
+  <title>Registration - TinyApp Example</title>
 </head>
 <%- include('partials/_header') %>
 
@@ -13,18 +13,18 @@
     <div class="card text-center">
       <div class="card-header"></div>
       <div class="card-body">
-        <h5 class="card-title">Registration Form
+        <h5 class="card-title">Create New Account
         </h5>
 
       </div>
       <div class="card-footer text-muted">
         <td>
           <form action="/register" method="POST">
-            <label for="username">Username</label>
-            <input id="username" type="text" name="username">
-            <label for="password">Password</label>
+            <label for="email">Your Email</label>
+            <input id="email" type="email" name="email">
+            <label for="password">Your Password</label>
             <input id="password" type="password" name="password">
-            <button type="submit" class='btn btn-primary'>Register</button>
+            <button type="submit" class='btn btn-primary'>Sign Up</button>
           </form>
         </td>
       </div>
