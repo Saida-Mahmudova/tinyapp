@@ -4,6 +4,7 @@ const PORT = 8080;
 const bodyParser = require("body-parser");
 const bcrypt = require('bcryptjs');
 const cookieSession = require('cookie-session');
+const getUserByEmail = require('./helpers');
 
 
 app.use(cookieSession({
@@ -57,17 +58,10 @@ const users = {
 //   return false;
 // };
 
-const findUserIdByEmail = (users, email) => {
-  for (let id in users) {
-    if (users[id].email === email) {
-      return id;
-    }
-  }
-  return null;
-};
+
 
 const checkPassword = (users, email, password) => {
-  const id = findUserIdByEmail(users, email);
+  const id = getUserByEmail(users, email);
   for (let user in users) {
     if (user === id && bcrypt.compareSync(password, users[id].password)) {
       return true;
@@ -205,7 +199,7 @@ app.get('/login', (req, res) => {
 app.post("/login", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
-  const userId = findUserIdByEmail(users, email);
+  const userId = getUserByEmail(users, email);
   if (userId) {
     if (checkPassword(users, email, password)) {
       req.session.user_id = userId;
@@ -238,7 +232,7 @@ app.post('/register', (req, res) => {
   const id = generateRandomString();
   const user = { email, password, id };
   if (email !== "" && req.body.password !== "") {
-    if (!findUserIdByEmail(users, email)) {
+    if (!getUserByEmail(users, email)) {
       users[id] = user;
       req.session.user_id = id;
       res.redirect('/urls');
