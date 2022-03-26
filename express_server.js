@@ -2,11 +2,16 @@ const express = require("express");
 const app = express();
 const PORT = 8080;
 const bodyParser = require("body-parser");
-const cookieParser = require('cookie-parser');
 const bcrypt = require('bcryptjs');
+const cookieSession = require('cookie-session');
+
+
+app.use(cookieSession({
+  name: 'session',
+  keys: ["LHL", "Saida", "TinyApp"],
+}));
 
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(cookieParser());
 
 app.set("view engine", "ejs");
 
@@ -88,7 +93,7 @@ app.get("/", (req, res) => {
 
 // GET /urls
 app.get("/urls", (req, res) => {
-  const userId = req.cookies['user_id'];
+  const userId = req.session.user_id;
   let userEmail;
   if (userId) {
     userEmail = users[userId].email;
@@ -100,7 +105,7 @@ app.get("/urls", (req, res) => {
 
 // POST /urls
 app.post("/urls", (req, res) => {
-  const userId = req.cookies['user_id'];
+  const userId = req.session.user_id;
   const user = users[userId];
   if (user) {
     const shortURL = generateRandomString();
@@ -118,7 +123,7 @@ app.post("/urls", (req, res) => {
 
 //GET /urls/new
 app.get("/urls/new", (req, res) => {
-  const userId = req.cookies['user_id'];
+  const userId = req.session.user_id;
   const user = users[userId];
   let userEmail;
   if (!user) {
@@ -132,7 +137,7 @@ app.get("/urls/new", (req, res) => {
 
 //GET /urls/:shortURL
 app.get("/urls/:shortURL", (req, res) => {
-  const userId = req.cookies['user_id'];
+  const userId = req.session.user_id;
   const user = users[userId];
   const newDatabase = urlsForUser(userId, urlDatabase);
   let shortURL = req.params.shortURL;
@@ -147,7 +152,7 @@ app.get("/urls/:shortURL", (req, res) => {
 // POST /urls/:shortURL
 app.post('/urls/:shortURL', (req, res) => {
   let shortURL = req.params.shortURL;
-  const userId = req.cookies['user_id'];
+  const userId = req.session.user_id;
   const user = users[userId];
   const newDatabase = urlsForUser(userId, urlDatabase);
   if (user && newDatabase) {
@@ -167,7 +172,7 @@ app.get("/u/:shortURL", (req, res) => {
 //POST /urls/:shortURL/delete
 app.post('/urls/:shortURL/delete', (req, res) => {
   const shortURL = req.params.shortURL;
-  const userId = req.cookies['user_id'];
+  const userId = req.session.user_id;
   const user = users[userId];
   if (user) {
     let newDatabase = urlsForUser(userId, urlDatabase);
@@ -186,7 +191,8 @@ app.post('/urls/:shortURL/delete', (req, res) => {
 
 //GET /login
 app.get('/login', (req, res) => {
-  const user = req.cookies['user_id'];
+  const userId = req.session.user_id;
+  const user = users[userId];
   const templateVars = { user };
   if (!user) {
     res.render('user_login', templateVars);
@@ -202,7 +208,7 @@ app.post("/login", (req, res) => {
   const userId = findUserIdByEmail(users, email);
   if (userId) {
     if (checkPassword(users, email, password)) {
-      res.cookie('user_id', userId);
+      req.session.user_id = userId;
       res.redirect('/urls');
     } else {
       res.status(403).send(`<html><body><h2>Error:403</h2> <h3><b>Password is not correct! Please check your password and try again!</h3><h4><a href="/login">Sign In</a></h4></b></body></html>`);
@@ -216,7 +222,7 @@ app.post("/login", (req, res) => {
 
 //GET /register
 app.get('/register', (req, res) => {
-  const user = req.cookies["user_id"];
+  const user = req.session.user_id;
   const templateVars = { user };
   if (!user) {
     res.render('user_registration', templateVars);
@@ -234,7 +240,7 @@ app.post('/register', (req, res) => {
   if (email !== "" && req.body.password !== "") {
     if (!findUserIdByEmail(users, email)) {
       users[id] = user;
-      res.cookie("user_id", id);
+      req.session.user_id = id;
       res.redirect('/urls');
     } else {
       res.status(400).send(`<html><body><h1>Error: 400</h1> <h2><b>This email(${email}) has already been registered!</h2><h3><a href="/login">Login</a></h3></b></body></html>`);
@@ -245,7 +251,7 @@ app.post('/register', (req, res) => {
 });
 //POST /logout
 app.post('/logout', (req, res) => {
-  res.clearCookie('user_id');
+  req.session.user_id = null;
   res.redirect('/urls');
 });
 
