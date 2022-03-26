@@ -4,7 +4,7 @@ const PORT = 8080;
 const bodyParser = require("body-parser");
 const bcrypt = require('bcryptjs');
 const cookieSession = require('cookie-session');
-const getUserByEmail = require('./helpers');
+const { getUserByEmail, generateRandomString, checkPassword, urlsForUser, existingUrl } = require('./helpers');
 
 
 app.use(cookieSession({
@@ -16,14 +16,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 app.set("view engine", "ejs");
 
-const generateRandomString = function () {
-  let string = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-  let result = "";
-  for (let i = 0; i < 6; i++) {
-    result += string[Math.floor(Math.random() * 62)];
-  }
-  return result;
-};
+
 
 const urlDatabase = {
   b6UTxQ: {
@@ -49,40 +42,16 @@ const users = {
   }
 };
 
-// const existingUser = (users, email) => {
-//   for (let user in users) {
-//     if (users[user].email === email) {
-//       return true;
-//     }
-//   }
-//   return false;
-// };
 
-
-
-const checkPassword = (users, email, password) => {
-  const id = getUserByEmail(users, email);
-  for (let user in users) {
-    if (user === id && bcrypt.compareSync(password, users[id].password)) {
-      return true;
-    }
-  }
-  return false;
-};
-const urlsForUser = (id, urlDatabase) => {
-  const obj = {};
-  if (id !== undefined) {
-    for (let shortURL in urlDatabase) {
-      if (urlDatabase[shortURL].userId === id) {
-        obj[shortURL] = urlDatabase[shortURL].longURL;
-      }
-    }
-  }
-  return obj;
-};
 
 app.get("/", (req, res) => {
-  res.redirect("/urls");
+  const userId = req.session.user_id;
+  const user = users[userId];
+  if (user) {
+    res.redirect("/urls");
+  } else {
+    res.redirect("/login");
+  }
 });
 
 // GET /urls
@@ -97,31 +66,13 @@ app.get("/urls", (req, res) => {
   res.render("urls_index", templateVars);
 });
 
-// POST /urls
-app.post("/urls", (req, res) => {
-  const userId = req.session.user_id;
-  const user = users[userId];
-  if (user) {
-    const shortURL = generateRandomString();
-    let longURL = req.body.longURL;
-    if (!longURL.includes('http')) {
-      longURL = `http://${longURL}`;
-    }
-    urlDatabase[shortURL] = { longURL: longURL, userId: userId };
-    res.redirect(`urls/${shortURL}`);
-  } else {
-    res.status(404).send(`Error:404</n> Only logged in users can shorten the links!`);
-  }
-
-});
-
 //GET /urls/new
 app.get("/urls/new", (req, res) => {
   const userId = req.session.user_id;
   const user = users[userId];
   let userEmail;
   if (!user) {
-    res.redirect('/login')
+    res.redirect('/login');
   } else {
     userEmail = users[userId].email;
     const templateVars = { user: userEmail };
@@ -143,24 +94,49 @@ app.get("/urls/:shortURL", (req, res) => {
   }
 });
 
+// GET /u/:shortURL
+app.get("/u/:shortURL", (req, res) => {
+  let longURL = urlDatabase[req.params.shortURL].longURL;
+  res.redirect(longURL);
+});
+
+// POST /urls
+app.post("/urls", (req, res) => {
+  const userId = req.session.user_id;
+  const user = users[userId];
+  const newDatabase = urlsForUser(userId, urlDatabase);
+  let longURL = req.body.longURL;
+  if (!longURL.includes('http')) {
+    longURL = `http://${longURL}`;
+  }
+  console.log("newDatabase", newDatabase)
+  console.log("existingUrl(req.body.editedLongURL, newDatabase)", existingUrl(longURL, newDatabase))
+  console.log("edited", longURL)
+  if (user && !existingUrl(longURL, newDatabase)) {
+    const shortURL = generateRandomString();
+    urlDatabase[shortURL] = { longURL: longURL, userId: userId };
+    res.redirect(`urls/${shortURL}`);
+  } else if (!user) {
+    res.status(400).send(`<html><body style ="text-align:center"><h1 style="color:#28a745">Error:400</h1> <h2><b>Please Login</h2><h2><a href="/login" style ="color:#6c757d">Login</a></h2></b></body></html>`);
+  } else {
+    res.status(400).send(`<html><body style ="text-align:center"><h1 style="color:#28a745">Error:400</h1> <h2><b>This URL exists in your list!</h2><h2><a href="/urls/new" style = "color:#6c757d">Go Back</a></h2></b></body></html>`);
+  }
+});
+
 // POST /urls/:shortURL
 app.post('/urls/:shortURL', (req, res) => {
   let shortURL = req.params.shortURL;
   const userId = req.session.user_id;
   const user = users[userId];
   const newDatabase = urlsForUser(userId, urlDatabase);
-  if (user && newDatabase) {
+  if (user && !existingUrl(req.body.editedLongURL, newDatabase)) {
     urlDatabase[shortURL].longURL = req.body.editedLongURL;
     res.redirect("/urls");
+  } else if (!user) {
+    res.status(400).send(`<html><body style ="text-align:center"><h1 style="color:#28a745">Error:400</h1> <h2><b>Please Login</h2><h2><a href="/login" style ="color:#6c757d">Login</a></h2></b></body></html>`);
   } else {
-    res.status(404).send(`<html><body><h2>Error:400</h2> <h3><b>Only logged in users can access this page! Please Login</h3><h4><a href="/login">Login</a></h4></b></body></html>`);
+    res.status(400).send(`<html><body style ="text-align:center"><h1 style="color:#28a745">Error:400</h1> <h2><b>This URL exists in your list!</h2><h2><a href="/urls/new" style = "color:#6c757d">Go Back</a></h2></b></body></html>`);
   }
-});
-
-// GET /u/:shortURL
-app.get("/u/:shortURL", (req, res) => {
-  let longURL = urlDatabase[req.params.shortURL].longURL;
-  res.redirect(longURL);
 });
 
 //POST /urls/:shortURL/delete
@@ -174,10 +150,10 @@ app.post('/urls/:shortURL/delete', (req, res) => {
       delete urlDatabase[shortURL];
       res.redirect("/urls");
     } else {
-      res.status(400).send("<html><body><h2>Caution!</h2><h3><b>Check your URL list for the short URL.</b></h3></body></html> ")
+      res.status(400).send(`<html><body style ="text-align:center"><h1 style="color:#28a745">Caution!</h1> <h2><b>Check your URL list for the short URL.</h2></b></body></html>`);
     }
   } else {
-    res.status(400).send('<html><body><h2>Caution!</h2> <h3><b>Please login for the short URL!</h3><h4><a href="/login">Sign In</a></h4></b></body></html>')
+    res.status(400).send(`<html><body style ="text-align:center"><h1 style="color:#28a745">Caution!</h1> <h2><b>Please login for the short URL!</h2><h2><a href="/login" style = "color:#6c757d">Login</a></h2></b></body></html>`);
   }
 });
 
@@ -195,6 +171,17 @@ app.get('/login', (req, res) => {
   }
 });
 
+//GET /register
+app.get('/register', (req, res) => {
+  const user = req.session.user_id;
+  const templateVars = { user };
+  if (!user) {
+    res.render('user_registration', templateVars);
+  } else {
+    res.redirect('/urls');
+  }
+});
+
 // POST login
 app.post("/login", (req, res) => {
   const email = req.body.email;
@@ -205,23 +192,10 @@ app.post("/login", (req, res) => {
       req.session.user_id = userId;
       res.redirect('/urls');
     } else {
-      res.status(403).send(`<html><body><h2>Error:403</h2> <h3><b>Password is not correct! Please check your password and try again!</h3><h4><a href="/login">Sign In</a></h4></b></body></html>`);
+      res.status(403).send(`<html><body style ="text-align:center"><h1 style="color:#28a745">Error:403</h1> <h2><b>Password is not correct! Please check your password and try again!</h2><h2><a href='/login' style = 'color:#6c757d'>Login</a></h2></b></body></html>`);
     }
   } else {
-    res.status(403).send(`<html><body><h2>Error:403</h2> <h3><b>User ${email} is not registered. Please check your email or register!</h3><h4><a href="/register">Register</a></h4></b></body></html>`);
-  }
-});
-
-
-
-//GET /register
-app.get('/register', (req, res) => {
-  const user = req.session.user_id;
-  const templateVars = { user };
-  if (!user) {
-    res.render('user_registration', templateVars);
-  } else {
-    res.redirect('/urls');
+    res.status(403).send(`<html><body style="text-align:center"><h1 style="color:#28a745">Error:403</h1> <h2><b>User ${email} is not registered. Please check your email or register!</h2><h2><a href="/register" style="color:#6c757d">Register</a></h2></b></body></html>`);
   }
 });
 
@@ -237,10 +211,10 @@ app.post('/register', (req, res) => {
       req.session.user_id = id;
       res.redirect('/urls');
     } else {
-      res.status(400).send(`<html><body><h1>Error: 400</h1> <h2><b>This email(${email}) has already been registered!</h2><h3><a href="/login">Login</a></h3></b></body></html>`);
+      res.status(400).send(`<html><body style ="text-align:center"><h1 style="color:#28a745">Error: 400</h1><h2><b>This email ${email} has already been registered!</h2><h2><a href="/login" style = "color:#6c757d">Login</a></h2></b></body></html>`);
     }
   } else {
-    res.status(400).send(`<html><body><h1>Error:400</h1> <h2><b>Email or Password cannot be left blank!</h2><h3><a href="/register">Register</a></h3></b></body></html>`);
+    res.status(400).send(`<html><body style="text-align:center"><h1 style="color:#28a745">Error: 400</h1><h2><b>Email or Password cannot be left blank!</h2><h2><a href='/register' style ="color:#6c757d">Register</a></h2></b></body></html>`);
   }
 });
 //POST /logout
