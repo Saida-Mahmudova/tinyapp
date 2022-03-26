@@ -69,7 +69,7 @@ const checkPassword = (users, email, password) => {
   }
   return false;
 };
-const userUrls = (id, urlDatabase) => {
+const urlsForUser = (id, urlDatabase) => {
   const obj = {};
   if (id !== undefined) {
     for (let shortURL in urlDatabase) {
@@ -82,13 +82,7 @@ const userUrls = (id, urlDatabase) => {
 };
 
 app.get("/", (req, res) => {
-  const userId = req.cookies['user_id'];
-  const user = users[userId];
-  if (user) {
-    res.redirect("/urls");
-  } else {
-    res.redirect("/login");
-  }
+  res.redirect("/urls");
 });
 
 // GET /urls
@@ -98,7 +92,7 @@ app.get("/urls", (req, res) => {
   if (userId) {
     userEmail = users[userId].email;
   }
-  const newDatabase = userUrls(userId, urlDatabase);
+  const newDatabase = urlsForUser(userId, urlDatabase);
   const templateVars = { urls: newDatabase, user: userEmail };
   res.render("urls_index", templateVars);
 });
@@ -124,8 +118,9 @@ app.post("/urls", (req, res) => {
 //GET /urls/new
 app.get("/urls/new", (req, res) => {
   const userId = req.cookies['user_id'];
+  const user = users[userId];
   let userEmail;
-  if (!userId) {
+  if (!user) {
     res.redirect('/login')
   } else {
     userEmail = users[userId].email;
@@ -138,7 +133,7 @@ app.get("/urls/new", (req, res) => {
 app.get("/urls/:shortURL", (req, res) => {
   const userId = req.cookies['user_id'];
   const user = users[userId];
-  const newDatabase = userUrls(userId, urlDatabase);
+  const newDatabase = urlsForUser(userId, urlDatabase);
   let shortURL = req.params.shortURL;
   if (user && newDatabase[shortURL]) {
     const templateVars = { shortURL, longURL: newDatabase[shortURL], user: user.email };
@@ -153,7 +148,7 @@ app.post('/urls/:shortURL', (req, res) => {
   let shortURL = req.params.shortURL;
   const userId = req.cookies['user_id'];
   const user = users[userId];
-  const newDatabase = userUrls(userId, urlDatabase);
+  const newDatabase = urlsForUser(userId, urlDatabase);
   if (user && newDatabase) {
     urlDatabase[shortURL].longURL = req.body.editedLongURL;
     res.redirect("/urls");
@@ -171,8 +166,19 @@ app.get("/u/:shortURL", (req, res) => {
 //POST /urls/:shortURL/delete
 app.post('/urls/:shortURL/delete', (req, res) => {
   const shortURL = req.params.shortURL;
-  delete urlDatabase[shortURL];
-  res.redirect("/urls");
+  const userId = req.cookies['user_id'];
+  const user = users[userId];
+  if (user) {
+    let newDatabase = urlsForUser(userId, urlDatabase);
+    if (newDatabase[shortURL]) {
+      delete urlDatabase[shortURL];
+      res.redirect("/urls");
+    } else {
+      res.status(400).send("<html><body><h2>Caution!</h2><h3><b>Check your URL list for the short URL.</b></h3></body></html> ")
+    }
+  } else {
+    res.status(400).send('<html><body><h2>Caution!</h2> <h3><b>Please login for the short URL!</h3><h4><a href="/login">Sign In</a></h4></b></body></html>')
+  }
 });
 
 
