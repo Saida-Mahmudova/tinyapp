@@ -57,13 +57,16 @@ app.get("/", (req, res) => {
 // GET /urls
 app.get("/urls", (req, res) => {
   const userId = req.session.user_id;
+  const user = users[userId];
   let userEmail;
-  if (userId) {
+  if (user) {
     userEmail = users[userId].email;
+    const newDatabase = urlsForUser(userId, urlDatabase);
+    const templateVars = { urls: newDatabase, user: userEmail };
+    res.render("urls_index", templateVars);
+  } else {
+    res.status(400).send(`<html><body style ="text-align:center"><h1 style="color:#28a745">Error:400</h1> <h2><b>Only logged in users can access URLs list! Please sign in or create a new account!</h2><h2><a href="/login" style ="color:#6c757d">Login</a></h2><h2><a href="/register" style ="color:#6c757d">Register</a></h2></b></body></html>`)
   }
-  const newDatabase = urlsForUser(userId, urlDatabase);
-  const templateVars = { urls: newDatabase, user: userEmail };
-  res.render("urls_index", templateVars);
 });
 
 //GET /urls/new
@@ -89,8 +92,12 @@ app.get("/urls/:shortURL", (req, res) => {
   if (user && newDatabase[shortURL]) {
     const templateVars = { shortURL, longURL: newDatabase[shortURL], user: user.email };
     res.render("urls_show", templateVars);
-  } else {
-    res.redirect('/urls');
+  } else if (!urlDatabase[shortURL]) {
+    res.status(400).send(`<html><body style ="text-align:center"><h1 style="color:#28a745">Error:400</h1> <h2><b>This URL doesn't exist!</h2><h2><a href="/urls" style ="color:#6c757d">Go Back</a></h2></b></body></html>`);
+  } else if (!user) {
+    res.status(400).send(`<html><body style ="text-align:center"><h1 style="color:#28a745">Error:400</h1> <h2><b>Only logged in users can access this page! Please sign in!</h2><h2><a href="/login" style ="color:#6c757d">Login</a></h2></b></body></html>`);
+  } else if (urlDatabase[shortURL].userID !== userId) {
+    res.status(400).send(`<html><body style ="text-align:center"><h1 style="color:#28a745">Error:400</h1> <h2><b>This URL belongs to another user!</h2><h2><a href="/urls" style ="color:#6c757d">Go Back</a></h2></b></body></html>`);
   }
 });
 
@@ -109,9 +116,6 @@ app.post("/urls", (req, res) => {
   if (!longURL.includes('http')) {
     longURL = `http://${longURL}`;
   }
-  console.log("newDatabase", newDatabase)
-  console.log("existingUrl(req.body.editedLongURL, newDatabase)", existingUrl(longURL, newDatabase))
-  console.log("edited", longURL)
   if (user && !existingUrl(longURL, newDatabase)) {
     const shortURL = generateRandomString();
     urlDatabase[shortURL] = { longURL: longURL, userId: userId };
@@ -119,7 +123,7 @@ app.post("/urls", (req, res) => {
   } else if (!user) {
     res.status(400).send(`<html><body style ="text-align:center"><h1 style="color:#28a745">Error:400</h1> <h2><b>Please Login</h2><h2><a href="/login" style ="color:#6c757d">Login</a></h2></b></body></html>`);
   } else {
-    res.status(400).send(`<html><body style ="text-align:center"><h1 style="color:#28a745">Error:400</h1> <h2><b>This URL exists in your list!</h2><h2><a href="/urls/new" style = "color:#6c757d">Go Back</a></h2></b></body></html>`);
+    res.status(400).send(`<html><body style ="text-align:center"><h1 style="color:#28a745">Error:400</h1> <h2><b>This URL exists in your list!</h2><h2><a href="/urls" style = "color:#6c757d">Go Back</a></h2></b></body></html>`);
   }
 });
 
