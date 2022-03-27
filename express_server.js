@@ -65,7 +65,7 @@ app.get("/urls", (req, res) => {
     const templateVars = { urls: newDatabase, user: userEmail };
     res.render("urls_index", templateVars);
   } else {
-    res.status(400).send(`<html><body style ="text-align:center"><h1 style="color:#28a745">Error:400</h1> <h2><b>Only logged in users can access URLs list! Please sign in or create a new account!</h2><h2><a href="/login" style ="color:#6c757d">Login</a></h2><h2><a href="/register" style ="color:#6c757d">Register</a></h2></b></body></html>`)
+    res.status(400).send(`<html><body style ="text-align:center"><h1 style="color:#28a745">Error:400</h1> <h2><b>Only logged in users can access URLs list! Please sign in or create a new account!</h2><h2><a href="/login" style ="color:#6c757d">Login</a></h2><h2><a href="/register" style ="color:#6c757d">Register</a></h2></b></body></html>`);
   }
 });
 
